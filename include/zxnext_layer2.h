@@ -486,6 +486,13 @@ void layer2_draw_pixel(uint8_t x,
                        layer2_screen_t *screen);
 
 /*
+ * Get a pixel on the specified layer 2 screen at the point (x, y)
+ */
+uint8_t layer2_get_pixel(uint8_t x,
+                       uint8_t y,
+                       layer2_screen_t *screen);
+
+/*
  * Draw a line on the specified layer 2 screen between the points (x1, y1) and
  * (x2, y2) using the colour of the specified palette index.
  */
@@ -520,8 +527,8 @@ void layer2_draw_rect(uint8_t x,
  *
  * Note that the printable characters in the ZX Spectrum character set (32 to
  * 127) are identical with ASCII except that ^, BACKQUOTE and DEL are replaced
- * with up-arrow, £ and (C). For example, if you want to draw the text
- * "Price in £", you use the string "Price in \x60" in your program.
+ * with up-arrow, ï¿½ and (C). For example, if you want to draw the text
+ * "Price in ï¿½", you use the string "Price in \x60" in your program.
  */
 void layer2_draw_text(uint8_t row,
                       uint8_t column,
