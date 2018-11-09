@@ -1,89 +1,42 @@
-/*******************************************************************************
- * Stefan Bylund 2017
- *
- * Implementation of layer2_draw_pixel() in zxnext_layer2.h.
- ******************************************************************************/
-
 #include <arch/zxn.h>
 #include <z80.h>
-#include <intrinsic.h>
-#include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <intrinsic.h>
 
-#include "zxnext_layer2.h"
-#include "layer2_defs.h"
-#include "layer2_common.h"
-
-
-/**
- *
- *  Get pixel at X, Y
- *
- *
- *   TODO:
- *      Handle more than default screen
- *      Handle that screen may not be at MMU8
- *
- *
- * @param x
- * @param y
- * @param screen
- * @return
- */
-
-uint8_t layer2_get_pixel(uint8_t x,
-                       uint8_t y,
-                       layer2_screen_t *screen)
+uint8_t layer2_get_pixel(uint8_t x, uint8_t y)
 {
-
+    uint8_t page;
     uint8_t color;
+
     if (y > 191)
     {
         return 0;
     }
 
+    // Disable any Interrupts that may be going on, in case they need ROM
     intrinsic_di();
-    if (y < 32)
-    {
-        // top1
-        z80_bpoke(0x50, 16);
-    }
-    else if (y < 64)
-    {
-        // top2
-        z80_bpoke(0x50, 17);
-        y -= 32;
-    }
-    else if (y < 76)
-    {
-        // middle1
-        z80_bpoke(0x50, 18);
-        y -= 64;
-    }
-    else if (y < 128)
-    {
-        // middle2
-        z80_bpoke(0x50, 19);
-        y -= 76;
-    }
-    else if (y < 160)
-    {
-        // bottom1
-        z80_bpoke(0x50, 20);
-        y -= 128;
-    }
-    if (y > 160)
-    {
-        // bottom2
-        z80_bpoke(0x50, 21);
-        y -= 160;
-    }
 
-    color = z80_bpeek(x + (y << 8));
+    // Determine the layer-2 MMU page of the pixel (one of six pages).
+    page = (ZXN_READ_REG(REG_LAYER_2_RAM_BANK) << 1) + (y / 32);
 
-    z80_bpoke(0x50, 255);
+    // Page in the required layer-2 MMU page into MMU slot 0.
+    ZXN_WRITE_MMU0(page);
+
+    // For flexibility, the working area MMU slot could be passed in as a parameter and then
+    // use ZXN_WRITE_REG() to page in the required layer-2 MMU page into the given MMU slot.
+    // In this case, we could also restore the original page in that MMU slot at the end of
+    // this function if the caller expects that.
+    //ZXN_WRITE_REG(REG_MMU0 + mmu_slot, page);
+
+    // Calculate the address of the pixel in its layer-2 MMU page and get the value.
+    color = z80_bpeek(x + ((y % 32) << 8));
+
+    // Return ROM to MMU0
+    ZXN_WRITE_MMU0(255);
+
+    // Reenable IM2
     intrinsic_ei();
 
+    // Return the value of the pixel.
     return color;
 }
